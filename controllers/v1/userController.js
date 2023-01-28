@@ -23,6 +23,8 @@ const {
 const fs = require("fs");
 const { seatReservation } = require("../../controllers/v1/evolviController");
 const moment = require("moment");
+const { resolve } = require("path");
+const seasonTicket = require("../../models/seasonTicket");
 
 const userRegister = async function (req, res) {
   const email = await user.findOne({ email: req.body.email });
@@ -80,36 +82,20 @@ const userLogin = async function (req, res) {
       return res
         .status(400)
         .json({ success: false, message: messages.emailNotverify });
-    let deviceToken = Math.floor(Math.random() * 1e16);
-    await user.findOneAndUpdate(
-      { email: req.body.email },
-      { deviceToken: deviceToken }
-    );
     let checkPassword = await compare(req.body.password, User.password);
     if (checkPassword) {
-      let token = jwt.sign(
-        {
-          id: User._id,
-          password: User.password,
-          deviceToken: deviceToken,
-        },
-        process.env.JWT_SECRET,
-        {
-          expiresIn: "24h",
-        }
-      );
-      return res.status(200).json({
-        success: true,
-        message: messages.login,
-        token,
-        data: {
-          _id: User._id,
-          firstName: User.firstName,
-          lastName: User.lastName,
-          fullName: User.fullName,
-          profileImage: User.image,
-        },
-      });
+      const send = await sendOtp(User.email, User.fullName);
+      if (send) {
+        return res.status(200).json({
+          success: true,
+          message: "OTP has been sent to your email",
+        });
+      } else {
+        return res.status(200).json({
+          success: false,
+          message: "OTP Not Send",
+        });
+      }
     } else {
       return res
         .status(400)
@@ -117,6 +103,68 @@ const userLogin = async function (req, res) {
     }
   } else {
     res.status(400).json({ success: false, message: messages.wrongEmail });
+  }
+};
+
+const sendOtp = async (email, name) => {
+  return new Promise((resolve) => {
+    let subject = "Verification OTP";
+    let text = "";
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    fs.readFile("html/otpmail.html", "utf-8", async function (err, data) {
+      var result = data.replace(/OTP_TEXT/g, otp);
+      result = result.replace(/USER_NAME/g, name);
+      try {
+        Email({ body: { email } }, null, subject, text, result);
+        await user.findOneAndUpdate(
+          { email },
+          {
+            otp,
+          }
+        );
+        resolve(true);
+      } catch (err) {
+        console.log(err);
+        resolve(false);
+      }
+    });
+  });
+};
+
+const verifyAuthOTP = async function (req, res) {
+  const { email, otp } = req.body;
+  const User = await user.findOne({ email });
+  if (User?.otp == otp) {
+    let deviceToken = Math.floor(Math.random() * 1e16);
+    const t = await user.findOneAndUpdate(
+      { email },
+      { otp: null, deviceToken }
+    );
+    let token = jwt.sign(
+      {
+        id: User._id,
+        password: User.password,
+        deviceToken: deviceToken,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: "24h",
+      }
+    );
+    return res.status(200).json({
+      success: true,
+      message: messages.login,
+      token,
+      data: {
+        _id: User._id,
+        firstName: User.firstName,
+        lastName: User.lastName,
+        fullName: User.fullName,
+        profileImage: User.image,
+      },
+    });
+  } else {
+    return res.status(400).json({ success: true, message: messages.wrongOtp });
   }
 };
 
@@ -452,30 +500,29 @@ const bookingList = async function (req, res) {
     if (status == "pastBookings") {
       query.push({
         $match: {
-          type: "overground",
-          bookingDate: { $lt: new Date(moment().startOf("d")) },
+          endDate: {
+            $lte: new Date(moment()),
+          },
         },
       });
     }
     if (status == "futureBookings") {
-      const date = new Date();
-      date.setDate(date.getDate() + 1);
       query.push({
         $match: {
-          type: "overground",
-          bookingDate: { $gte: new Date(moment().endOf("d")) },
+          startDate: {
+            $gte: new Date(moment()),
+          },
         },
       });
     }
     if (status == "activeBookings") {
-      const today = moment().format("YYYY-MM-DD");
-      const date = today.toString();
       query.push({
         $match: {
-          type: "overground",
-          bookingDate: {
-            $gte: new Date(moment().startOf("d")),
-            $lte: new Date(moment().endOf("d")),
+          startDate: {
+            $lte: new Date(moment()),
+          },
+          endDate: {
+            $gte: new Date(moment()),
           },
         },
       });
@@ -533,7 +580,8 @@ const bookingList = async function (req, res) {
       zone: 1,
       destination: 1,
       source: 1,
-      bookingDate: 1,
+      startDate: 1,
+      endDate: 1,
       isCancel: 1,
       user: 1,
       price: 1,
@@ -585,13 +633,17 @@ const bookingList = async function (req, res) {
       },
     }
   );
-  const bookingList = await booking.aggregate(query);
+
+  const bookingList =
+    bookingStatus == "trainBookings"
+      ? await seasonTicket.aggregate(query)
+      : await booking.aggregate(query);
   let TotalCount =
     bookingList && bookingList[0] && bookingList[0].totalCount
       ? bookingList[0].totalCount.count
       : 0;
 
-  console.log(bookingList[0].data);
+  // console.log(bookingList[0].data);
   res.status(200).json({
     success: true,
     data: {
@@ -860,6 +912,7 @@ const trainBook = async (req, res, next) => {
 module.exports = {
   userRegister,
   userLogin,
+  verifyAuthOTP,
   socialUserLogin,
   forgotPassword,
   resetPassword,

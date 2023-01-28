@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+autoIncrement = require("mongoose-auto-increment");
 
 const Schema = mongoose.Schema;
 // type overground => ['Round Trip', 'One Day Ticket']
@@ -12,7 +13,7 @@ const booking = new Schema(
       ref: "user",
     },
     ticketId: {
-      type: String,
+      type: Number,
       // required: true,
       unique: true,
     },
@@ -175,4 +176,11 @@ const booking = new Schema(
   },
   { timestamps: true }
 );
+autoIncrement.initialize(mongoose.connection);
+booking.plugin(autoIncrement.plugin, {
+  model: "booking",
+  field: "ticketId",
+  startAt: 1,
+  incrementBy: 1,
+});
 module.exports = mongoose.model("booking", booking);

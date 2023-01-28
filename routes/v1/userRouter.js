@@ -18,6 +18,7 @@ const {
   saveCreditCard,
   removeCardDetails,
   trainBook,
+  verifyAuthOTP,
 } = require("../../controllers/v1/userController");
 //middleware//
 const { userAuth } = require("../../middlewares/Auth");
@@ -43,6 +44,7 @@ userRouter.post(
   validationRuleslogin,
   asyncTryCatchMiddleware(userLogin)
 );
+userRouter.post("/verifyAuthOTP", asyncTryCatchMiddleware(verifyAuthOTP));
 userRouter.post(
   "/socialLogin",
   validationRulesSocialLogin,

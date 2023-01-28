@@ -84,7 +84,7 @@ exports.oysterCardBooking = async (req, res) => {
     else dataObject[i] = req.body[i];
   }
   dataObject["type"] = "underground";
-  dataObject["ticketId"] = randomAlphaNumericCode();
+  // dataObject["ticketId"] = randomAlphaNumericCode();
   if (req.body.duration === "1 Day" || req.body.duration === "1 Day off-Peak") {
     dataObject["bookingType"] = "One Day Ticket";
   } else {

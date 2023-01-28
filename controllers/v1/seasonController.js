@@ -292,7 +292,7 @@ const accrejSeasonticket = async function (req, res) {
 const seasonDetail = async (req, res, next) => {
   const checkTicket = await seasonTicket
     .findOne({ user: req.token._id })
-    .populate("user", "card");
+    .populate("user", ["fullName", "address", "card"]);
   if (checkTicket)
     return res
       .status(200)
@@ -757,6 +757,10 @@ const seasonPayment = async (req, res, next) => {
   obj.destination = req.body.destination;
   obj.destinationCRSCode = req.body.destinationCRSCode;
   obj.card = JSON.parse(req.body.card);
+  obj.class = req.body?.class;
+  obj.ticketType = req.body?.type;
+  obj.deliveryMethod = req.body?.deliveryMethod;
+  obj.deliveryFee = req.body?.deliveryFee;
   if (req.body.paymentType.toLowerCase() == "pay") {
     paymentStripe(userDetails.card.stripeCustomerId, parseInt(req.body.price))
       .then(async (success) => {
