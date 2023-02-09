@@ -506,7 +506,7 @@ const bookingList = async function (req, res) {
         },
       });
     }
-    if (status == "futureBookings") {
+    /* if (status == "futureBookings") {
       query.push({
         $match: {
           startDate: {
@@ -521,6 +521,15 @@ const bookingList = async function (req, res) {
           startDate: {
             $lte: new Date(moment()),
           },
+          endDate: {
+            $gte: new Date(moment()),
+          },
+        },
+      });
+    } */
+    if (status == "futureBookings" || status == "activeBookings") {
+      query.push({
+        $match: {
           endDate: {
             $gte: new Date(moment()),
           },
@@ -859,7 +868,7 @@ const trainBook = async (req, res, next) => {
       obj.adultCount = req.body.AdultCount;
       obj.bookingType = transformTripName(req.body.JourneyType);
       obj.fareType = req.body.BookingType;
-      obj.ticketId = randomAlphaNumericCode();
+      // obj.ticketId = randomAlphaNumericCode();
       obj.user = req.token._id;
       obj.arrivalTime = req.body.ArrivalDateTime;
       obj.departureTime = req.body.DepartureDate;
@@ -881,6 +890,7 @@ const trainBook = async (req, res, next) => {
       paymentStripe(req.token.card.stripeCustomerId, parseInt(obj.price))
         .then(async (success) => {
           // console.log('success', success)
+
           const saveDetail = await new booking(obj).save();
           if (saveDetail) {
             userDetail.transactionIdentifier = null;
@@ -894,7 +904,7 @@ const trainBook = async (req, res, next) => {
             return res.status(400).json(createErrorResponse("Payment failed."));
         })
         .catch((err) => {
-          return res.status(400).json(createErrorResponse(err.raw.message));
+          return res.status(400).json(createErrorResponse(err.raw?.message));
         });
     });
   }
