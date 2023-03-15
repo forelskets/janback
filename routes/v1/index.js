@@ -7,7 +7,10 @@ const flexiRoutes = require("./flexiRouter");
 const overgroundRoutes = require("./overgroundRouter");
 const undergroundRoutes = require("./undergroundRouter");
 const dashboardRoutes = require("./dashboardRouter");
+const stripeRoutes = require("./stripe");
+
 const oysterCardRouter = require("./oysterCardRouter");
+
 const evolviRoutes = require("./evolviRouter");
 
 router.use("/user", userRoutes);
@@ -15,6 +18,8 @@ router.use("/admin", adminRoutes);
 router.use("/season", seasonRoutes);
 router.use("/flexi", flexiRoutes);
 router.use("/overground", overgroundRoutes);
+router.use("/stripe", stripeRoutes);
+
 router.use("/underground", undergroundRoutes);
 
 router.use("/oysterCard", oysterCardRouter);
