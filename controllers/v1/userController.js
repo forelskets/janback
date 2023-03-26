@@ -151,6 +151,7 @@ const verifyAuthOTP = async function (req, res) {
         expiresIn: "24h",
       }
     );
+    
     return res.status(200).json({
       success: true,
       message: messages.login,
@@ -195,7 +196,7 @@ const socialUserLogin = async function (req, res) {
   let token = jwt.sign(
     {
       id: userInfo._id,
-      password: userInfo._id,
+      password: userInfo.password,
       deviceToken: deviceToken,
     },
     process.env.JWT_SECRET,
